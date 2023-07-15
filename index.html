@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://cdn.skypack.dev/hammerjs@2.0.8"></script>
+  <title>Solar System</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+    }
+
+    #canvas_container {
+      width: 100%;
+      height: 100vh;
+      position: absolute;
+      top: 0;
+      left: 0;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="canvas_container"></div>
+
+ <script type="module">
+  import * as THREE from 'https://cdn.skypack.dev/three@0.134.0/build/three.module.js';
+
+  let renderer,
+    composer,
+    camera,
+    scene,
+    planets = [],
+    sun,
+    sphereBg,
+    container = document.getElementById("canvas_container"),
+    timeout_Debounce,
+    t = 0;
+
+  function init() {
+    scene = new THREE.Scene();
+    scene.background = new THREE.Color("#000000");
+    scene.fog = new THREE.Fog("#3c1e02", 0.5, 50);
+
+    camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.01, 1000);
+    camera.position.set(0, 1, 150);
+
+    renderer = new THREE.WebGLRenderer({
+      antialias: true,
+      alpha: true
+    });
+    renderer.setSize(container.clientWidth, container.clientHeight);
+    renderer.setPixelRatio(window.devicePixelRatio);
+    container.appendChild(renderer.domElement);
+
+    const loader = new THREE.TextureLoader();
+
+    // Sun
+    const sunGeometry = new THREE.SphereBufferGeometry(7, 32, 32);
+    const sunTexture = loader.load('https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSHxx_5MqW37YAVlmK3Ooclk4vu50Bpzq9AsW1L7PHUq0dCyFYVWK6m1XgyL6-dewXz81o&usqp=CAU');
+    sunTexture.anisotropy = 16;
+    const sunMaterial = new THREE.MeshBasicMaterial({
+      map: sunTexture,
+      fog: false
+    });
+    sun = new THREE.Mesh(sunGeometry, sunMaterial);
+    sun.position.set(0, 0, 0);
+    scene.add(sun);
+
+    // Mercury
+    const mercuryGeometry = new THREE.SphereBufferGeometry(1, 32, 32);
+    const mercuryTexture = loader.load('https://upload.wikimedia.org/wikipedia/commons/thumb/9/92/Solarsystemscope_texture_2k_mercury.jpg/800px-Solarsystemscope_texture_2k_mercury.jpg?20201026210257');
+    mercuryTexture.anisotropy = 16;
+    const mercuryMaterial = new THREE.MeshLambertMaterial({
+      map: mercuryTexture,
+      fog: false
+    });
+    const mercury = new THREE.Mesh(mercuryGeometry, mercuryMaterial);
+    mercury.position.set(30, 0, 0);
+    scene.add(mercury);
+    planets.push(mercury);
+
+    // Venus
+    const venusGeometry = new THREE.SphereBufferGeometry(2, 32, 32);
+    const venusTexture = loader.load('https://upload.wikimedia.org/wikipedia/commons/thumb/1/1c/Solarsystemscope_texture_8k_venus_surface.jpg/1200px-Solarsystemscope_texture_8k_venus_surface.jpg');
+    venusTexture.anisotropy = 16;
+    const venusMaterial = new THREE.MeshLambertMaterial({
+      map: venusTexture,
+      fog: false
+    });
+    const venus = new THREE.Mesh(venusGeometry, venusMaterial);
+    venus.position.set(45, 0, 0);
+    scene.add(venus);
+    planets.push(venus);
+
+    // Earth
+    const earthGeometry = new THREE.SphereBufferGeometry(2.5, 32, 32);
+    const earthTexture = loader.load('https://www.shutterstock.com/image-illustration/world-texture-satellite-image-earth-260nw-1776531926.jpg');
+    earthTexture.anisotropy = 16;
+    const earthMaterial = new THREE.MeshLambertMaterial({
+      map: earthTexture,
+      fog: false
+    });
+    const earth = new THREE.Mesh(earthGeometry, earthMaterial);
+    earth.position.set(60, 0, 0);
+    scene.add(earth);
+    planets.push(earth);
+
+    // Mars
+    const marsGeometry = new THREE.SphereBufferGeometry(2, 32, 32);
+    const marsTexture = loader.load('https://upload.wikimedia.org/wikipedia/commons/thumb/4/46/Solarsystemscope_texture_2k_mars.jpg/800px-Solarsystemscope_texture_2k_mars.jpg?20201026210255');
+    marsTexture.anisotropy = 16;
+    const marsMaterial = new THREE.MeshLambertMaterial({
+      map: marsTexture,
+      fog: false
+    });
+    const mars = new THREE.Mesh(marsGeometry, marsMaterial);
+    mars.position.set(75, 0, 0);
+    scene.add(mars);
+    planets.push(mars);
+
+    // Jupiter
+    const jupiterGeometry = new THREE.SphereBufferGeometry(4.5, 32, 32);
+    const jupiterTexture = loader.load('https://images-wixmp-ed30a86b8c4ca887773594c2.wixmp.com/f/06a094a4-7bd7-4bb9-b998-6c1e17f66c08/db73h34-1c47bcaf-54f0-4292-b700-d5cc1844997e.png/v1/fill/w_1024,h_512,q_80,strp/jupiter_true_color_texture_map___galileo_hubble_95_by_fargetanik_db73h34-fullview.jpg?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1cm46YXBwOjdlMGQxODg5ODIyNjQzNzNhNWYwZDQxNWVhMGQyNmUwIiwiaXNzIjoidXJuOmFwcDo3ZTBkMTg4OTgyMjY0MzczYTVmMGQ0MTVlYTBkMjZlMCIsIm9iaiI6W1t7ImhlaWdodCI6Ijw9NTEyIiwicGF0aCI6IlwvZlwvMDZhMDk0YTQtN2JkNy00YmI5LWI5OTgtNmMxZTE3ZjY2YzA4XC9kYjczaDM0LTFjNDdiY2FmLTU0ZjAtNDI5Mi1iNzAwLWQ1Y2MxODQ0OTk3ZS5wbmciLCJ3aWR0aCI6Ijw9MTAyNCJ9XV0sImF1ZCI6WyJ1cm46c2VydmljZTppbWFnZS5vcGVyYXRpb25zIl19.EeX9jhgudgSuwaeYq_6uTD5PqxaGdQ92xqKn1P-zVok');
+    jupiterTexture.anisotropy = 16;
+    const jupiterMaterial = new THREE.MeshLambertMaterial({
+      map: jupiterTexture,
+      fog: false
+    });
+    const jupiter = new THREE.Mesh(jupiterGeometry, jupiterMaterial);
+    jupiter.position.set(90, 0, 0);
+    scene.add(jupiter);
+    planets.push(jupiter);
+
+    // Saturn
+    const saturnGeometry = new THREE.SphereBufferGeometry(4, 32, 32);
+    const saturnTexture = loader.load('https://upload.wikimedia.org/wikipedia/commons/thumb/e/ea/Solarsystemscope_texture_2k_saturn.jpg/800px-Solarsystemscope_texture_2k_saturn.jpg?20201026210300');
+    saturnTexture.anisotropy = 16;
+    const saturnMaterial = new THREE.MeshLambertMaterial({
+      map: saturnTexture,
+      fog: false
+    });
+    const saturn = new THREE.Mesh(saturnGeometry, saturnMaterial);
+    saturn.position.set(105, 0, 0);
+    scene.add(saturn);
+    planets.push(saturn);
+
+    // Saturn Ring
+    const saturnRingGeometry = new THREE.RingBufferGeometry(4.5, 6, 64);
+    const saturnRingTexture = loader.load('https://blenderartists.org/uploads/default/optimized/4X/d/f/d/dfda2d1cabfa176fe1c415208deea3b30be87eb0_2_690x388.jpg');
+    saturnRingTexture.anisotropy = 16;
+    const saturnRingMaterial = new THREE.MeshLambertMaterial({
+      map: saturnRingTexture,
+      side: THREE.DoubleSide,
+      transparent: true,
+      opacity: 0.8,
+      fog: false
+    });
+    const saturnRing = new THREE.Mesh(saturnRingGeometry, saturnRingMaterial);
+    saturnRing.position.set(105, 0, 0);
+    saturnRing.rotation.x = Math.PI / 2;
+    scene.add(saturnRing);
+
+    // Uranus
+    const uranusGeometry = new THREE.SphereBufferGeometry(3.5, 32, 32);
+    const uranusTexture = loader.load('https://upload.wikimedia.org/wikipedia/commons/thumb/9/95/Solarsystemscope_texture_2k_uranus.jpg/800px-Solarsystemscope_texture_2k_uranus.jpg?20201026210219');
+    uranusTexture.anisotropy = 16;
+    const uranusMaterial = new THREE.MeshLambertMaterial({
+      map: uranusTexture,
+      fog: false
+    });
+    const uranus = new THREE.Mesh(uranusGeometry, uranusMaterial);
+    uranus.position.set(120, 0, 0);
+    scene.add(uranus);
+    planets.push(uranus);
+
+    // Uranus Ring
+    const uranusRingGeometry = new THREE.RingBufferGeometry(3.8, 5, 64);
+    const uranusRingTexture = loader.load('https://upload.wikimedia.org/wikipedia/commons/0/0e/Uranus_rings.png?20150508065036');
+    uranusRingTexture.anisotropy = 16;
+    const uranusRingMaterial = new THREE.MeshLambertMaterial({
+      map: uranusRingTexture,
+      side: THREE.DoubleSide,
+      transparent: true,
+      opacity: 0.8,
+      fog: false
+    });
+    const uranusRing = new THREE.Mesh(uranusRingGeometry, uranusRingMaterial);
+    uranusRing.position.set(120, 0, 0);
+    uranusRing.rotation.x = Math.PI / 2;
+    scene.add(uranusRing);
+
+    // Neptune
+    const neptuneGeometry = new THREE.SphereBufferGeometry(3.2, 32, 32);
+    const neptuneTexture = loader.load('https://upload.wikimedia.org/wikipedia/commons/thumb/1/1e/Solarsystemscope_texture_2k_neptune.jpg/800px-Solarsystemscope_texture_2k_neptune.jpg?20201026210218');
+    neptuneTexture.anisotropy = 16;
+    const neptuneMaterial = new THREE.MeshLambertMaterial({
+      map: neptuneTexture,
+      fog: false
+    });
+    const neptune = new THREE.Mesh(neptuneGeometry, neptuneMaterial);
+    neptune.position.set(135, 0, 0);
+    scene.add(neptune);
+    planets.push(neptune);
+
+    // Sphere Background
+    const textureSphereBg = loader.load('https://i.ibb.co/JCsHJpp/stars2-qx9prz.jpg');
+    textureSphereBg.anisotropy = 16;
+    const geometrySphereBg = new THREE.SphereBufferGeometry(250, 32, 32);
+    const materialSphereBg = new THREE.MeshBasicMaterial({
+      side: THREE.BackSide,
+      map: textureSphereBg,
+      fog: false
+    });
+    sphereBg = new THREE.Mesh(geometrySphereBg, materialSphereBg);
+    scene.add(sphereBg);
+
+    // Light
+    const light = new THREE.PointLight("#ffffff", 1, 0);
+    light.position.set(0, 0, 20);
+    scene.add(light);
+
+    animate();
+  }
+
+  function animate() {
+    planets.forEach((planet, index) => {
+      const radius = 30 + index * 15;
+      const angle = t * (index + 1) * 0.002;
+      const x = radius * Math.cos(angle);
+      const z = radius * Math.sin(angle);
+
+      planet.position.set(x, 0, z);
+      planet.rotation.y += 0.01;
+    });
+
+    t += 1;
+
+    sun.rotation.y += 0.002;
+    sphereBg.rotation.x += 0.002;
+    sphereBg.rotation.y += 0.002;
+    sphereBg.rotation.z += 0.002;
+
+    renderer.render(scene, camera);
+
+    requestAnimationFrame(animate);
+  }
+
+  // Initialize the scene
+  init();
+
+  // Initialize Hammer.js
+  const hammer = new Hammer(container);
+
+  // Enable pinch-to-zoom
+  hammer.get('pinch').set({ enable: true });
+
+  // Handle pinch events
+  let initialScale = 1;
+  hammer.on('pinchstart', function (e) {
+    initialScale = camera.scale.x;
+  });
+
+  hammer.on('pinchmove', function (e) {
+    const scale = initialScale * e.scale;
+    camera.scale.set(scale, scale, scale);
+  });
+</script>
+
+</body>
+
+</html>
